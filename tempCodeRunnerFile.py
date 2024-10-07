@@ -114,28 +114,22 @@ class ShoppingMall:
         else:
             for product, (price, quantity) in self.products.items():
                 print(f"{product}: {price}원, 수량: {quantity}")
+        
+        # 상품 관리
+        print("\n상품 관리 선택: \n1. 상품 등록\n2. 상품 수정\n3. 단종 등록\n0. 뒤로가기")
+        choice = input("선택: ")
+        if choice == '1':
+            self.add_product()
+        elif choice == '2':
+            product_name = input("수정할 상품명을 입력하세요: ")
+            self.update_product(product_name)
+        elif choice == '3':
+            self.remove_product()
+        elif choice == '0':
+            print("뒤로가기 선택.")
+        else:
+            print("잘못된 입력입니다. 다시 선택하세요.")
 
-    # 관리자용 상품 관리
-    def manage_products(self):
-        while True:
-            print("\n1. 상품 조회\n2. 상품 등록\n3. 상품 수정\n4. 단종 등록\n0. 종료")
-            choice = input("선택: ")
-            if choice == '1':
-                self.view_products()  # 상품 조회
-            elif choice == '2':
-                self.add_product()  # 상품 추가
-            elif choice == '3':
-                product_name = input("수정할 상품명을 입력하세요: ")
-                self.update_product(product_name)  # 상품 수정
-            elif choice == '4':
-                self.remove_product()  # 상품 삭제
-            elif choice == '0':
-                print("상품 관리 화면을 종료합니다.")
-                break
-            else:
-                print("잘못된 입력입니다. 다시 선택하세요.")
-
-    # 주문 추가 (고객용)
     # 주문 추가 (고객용)
     def add_order(self):
         customer_name = input("고객 이름: ")
@@ -150,21 +144,9 @@ class ShoppingMall:
             if quantity > product_quantity:
                 print("수량이 재고를 초과합니다.")
                 return
-        
-            # Ask for the order date
-            while True:
-                try:
-                    input_date = input("주문 날짜를 입력하세요 (YYYY-MM-DD): ")
-                    year, month, day = map(int, input_date.split('-'))
-                    order_date = datetime.date(year, month, day)
-                    break
-                except ValueError:
-                    print("잘못된 형식입니다. 다시 입력하세요.")
-        
             order_id = f"ORD{random.randint(1000, 9999)}"
-            order = Order(order_id, product_name, product_price, quantity, customer_name, customer_address, order_date)
+            order = Order(order_id, product_name, product_price, quantity, customer_name, customer_address, self.current_date)
             self.orders.append(order)
-        
             # Update product quantity
             self.products[product_name] = (product_price, product_quantity - quantity)
             print(f"주문이 추가되었습니다: \n{order}")
@@ -172,7 +154,6 @@ class ShoppingMall:
             self.save_sales(order)  # Save sales information
         else:
             print("해당 상품이 존재하지 않습니다.")
-
 
     # 매출 정보 저장
     def save_sales(self, order):
@@ -204,15 +185,8 @@ class ShoppingMall:
 
     # 매출 조회
     def view_sales(self):
-        total_sales = 0
-        print("\n매출 내역:")
-        print(f"{'상품명':<10} {'수량':<10} {'총 가격':<10}")
-        for order in self.orders:
-            total_price = order.product_price * order.quantity
-            print(f"{order.product_name:<10} {order.quantity:<10} {total_price:<10}원")
-            total_sales += total_price
+        total_sales = sum(order.product_price * order.quantity for order in self.orders)
         print(f"총 매출액: {total_sales}원")
-
 
     # 파일로부터 상품 읽어오기
     def load_items(self):
@@ -227,6 +201,7 @@ class ShoppingMall:
         except ValueError:
             print("파일 형식이 잘못되었습니다. 상품 정보를 확인하세요.")  # Handle incorrect format
 
+
     # 상품을 파일에 저장
     def save_items(self):
         with open('items.txt', 'w', encoding='utf-8') as f:
@@ -238,15 +213,12 @@ class ShoppingMall:
         try:
             with open('orders.txt', 'r', encoding='utf-8') as f:
                 for line in f:
-                    if line.strip():  # Check if the line is not empty
-                        order = Order.from_file_string(line)
-                        self.orders.append(order)
+                    order = Order.from_file_string(line)
+                    self.orders.append(order)
         except FileNotFoundError:
-            pass  # File not found, do nothing
-        except ValueError:
-            print("파일 형식이 잘못되었습니다. 주문 정보를 확인하세요.")  # Handle incorrect format
+            pass
 
-    # 주문 정보를 파일에 저장
+    # 주문을 파일에 저장
     def save_orders(self):
         with open('orders.txt', 'w', encoding='utf-8') as f:
             for order in self.orders:
@@ -255,12 +227,12 @@ class ShoppingMall:
     # 고객 메뉴
     def customer_menu(self):
         while True:
-            print("\n1. 상품 목록 조회\n2. 주문하기\n0. 종료")
+            print("\n1. 상품 조회\n2. 주문하기\n0. 종료")
             choice = input("선택: ")
             if choice == '1':
-                self.view_products()  # 상품 조회
+                self.view_products()
             elif choice == '2':
-                self.add_order()  # 주문하기
+                self.add_order()
             elif choice == '0':
                 print("고객 화면을 종료합니다.")
                 break
@@ -273,13 +245,13 @@ class ShoppingMall:
             print("\n1. 상품 목록 조회\n2. 주문 조회\n3. 주문 삭제\n4. 매출 조회\n0. 종료")
             choice = input("선택: ")
             if choice == '1':
-                self.manage_products()  # 상품 목록 및 관리
+                self.view_products()
             elif choice == '2':
-                self.view_orders()  # 주문 조회
+                self.view_orders()
             elif choice == '3':
-                self.remove_order()  # 주문 삭제
+                self.remove_order()
             elif choice == '4':
-                self.view_sales()  # 매출 조회
+                self.view_sales()
             elif choice == '0':
                 print("관리자 화면을 종료합니다.")
                 break
@@ -292,11 +264,11 @@ class ShoppingMall:
             print("\n1. 고객\n2. 관리자\n0. 종료")
             role = input("선택: ")
             if role == '1':
-                self.customer_menu()  # 고객 메뉴로 이동
+                self.customer_menu()
             elif role == '2':
                 admin_code = input("관리자 코드를 입력하세요: ")
                 if admin_code == "admin123":
-                    self.admin_menu()  # 관리자 메뉴로 이동
+                    self.admin_menu()
                 else:
                     print("잘못된 관리자 코드입니다.")
             elif role == '0':
