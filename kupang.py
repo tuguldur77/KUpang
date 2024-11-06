@@ -34,24 +34,16 @@ class ShoppingMall:
     def __init__(self):
         self.orders = []  # 주문 목록
         self.products = {}  # 상품 목록 (상품명: (가격, 수량))
-        self.current_date = None
         self.load_items()
         self.load_orders()
-        self.last_order_date = None  # 마지막 주문 날짜
+        self.last_order_date = None  # 마지막 주문일
 
-    # 현재 날짜 설정
-    def set_date(self):
-        while True:
-            try:
-                input_date = input("현재 날짜를 입력하세요 (YYYY-MM-DD) 또는 '0'을 눌러 종료: ")
-                if input_date == '0':
-                    print("프로그램을 종료합니다.")
-                    exit()
-                year, month, day = map(int, input_date.split('-'))
-                self.current_date = datetime.date(year, month, day)
-                break
-            except ValueError:
-                print("잘못된 형식입니다. 다시 입력하세요.")
+    def check_id(self, product_id):
+        #상품 번호가 이미 등록된 상품 번호와 중복되는지 확인하는 함수
+        if product_id in self.products:
+            print(f"오류: 상품 번호 '{product_id}'는 이미 존재합니다.")
+            return False  # 중복된 상품번호가 있으면 False 반환
+        return True  # 중복되지 않으면 True 반환
 
     def add_product(self):
         while True:
@@ -244,7 +236,14 @@ class ShoppingMall:
             for product_id, (product_name, price, quantity) in self.products.items():
                 print(f"{product_id:<15} {product_name:<15} {price:<15} {quantity:<10}")
 
+    def remove_space(self, query):
+        return re.sub(r'[^a-zA-Z0-9]', '', query)
+    
+    # Modified search_products function
     def search_products(self, query):
+        # Remove spaces from the search query
+        query = self.remove_space(query)
+        
         # 검색어가 비어 있으면 빈 딕셔너리 반환
         if not query:
             print("\n검색어가 비어 있습니다. 다시 입력하세요.")
@@ -254,10 +253,11 @@ class ShoppingMall:
         results = {
             product_id: (name, price, quantity)
             for product_id, (name, price, quantity) in self.products.items()
-            if query.lower() in name.lower()
+            if self.remove_space(name.lower()).find(query.lower()) != -1
         }
         
         return results
+
 
     # 관리자용 상품 관리
     def manage_products(self):
@@ -291,6 +291,12 @@ class ShoppingMall:
         if product_id == '0':
             print("주문을 종료합니다.")
             return  # 주문 종료
+        
+        # 상품 번호 중복 검사
+        if not self.check_id(product_id):
+            # 상품 번호가 중복되면 주문을 종료하거나 다시 입력받도록 처리
+            self.add_order()
+            return
 
         if product_id in self.products:
             product_name, product_price, product_quantity = self.products[product_id]
@@ -329,16 +335,30 @@ class ShoppingMall:
                     print("오류: 잘못된 입력입니다.")
                     continue
 
-                #user enter the order date, and it shows first entered date (current date)
-                order_date = input("주문일 (" + str(self.current_date) + "~): ")
-                if self.last_order_date is not None:
-                    if order_date < self.last_order_date:
-                        print("오류: 잘못된 입력입니다.")
-                        continue
-                else:   
-                    if order_date < str(self.current_date):
-                        print("오류: 잘못된 입력입니다.")
-                        continue
+                # 주문일 입력 부분
+                if self.last_order_date is None:
+                    # 첫 주문일 경우, 아무 날짜나 입력받도록 허용
+                    while True:
+                        order_date = input("주문일 (YYYY-MM-DD): ")
+                        if re.match(r"^\d{4}-\d{2}-\d{2}$", order_date):
+                            self.last_order_date = order_date
+                            break
+                        else:
+                            print("오류: 날짜는 'YYYY-MM-DD' 형식이어야 합니다. 다시 입력하세요.")
+                else:
+                    # 마지막 주문일이 있을 경우, 그 날짜 이후로만 입력받도록 함
+                    while True:
+                        order_date = input("주문일 (" + str(self.last_order_date) + "~): ")
+                        if re.match(r"^\d{4}-\d{2}-\d{2}$", order_date):
+                            # 입력된 주문일이 마지막 주문일 이전이면 오류 처리
+                            if order_date < self.last_order_date:
+                                print("오류: 주문일은 마지막 주문일 이후여야 합니다.")
+                            else:
+                                # 유효한 날짜 입력되었으면 last_order_date 갱신
+                                self.last_order_date = order_date
+                                break
+                        else:
+                            print("오류: 날짜는 'YYYY-MM-DD' 형식이어야 합니다. 다시 입력하세요.")
 
                 print(f"\n입력이 완료되었습니다.")
 
@@ -366,6 +386,7 @@ class ShoppingMall:
                         # 파일에 주문과 상품 정보 저장
                         self.save_orders()
                         self.save_items()  # 상품 정보도 함께 저장
+                        self.save_sales(order)  # 매출 정보 저장
                         # 주문 추가 완료 후 루프 종료
                         print("\n[ 주문 완료 ]")
                         print(f"주문번호: {order_id}")
@@ -399,7 +420,7 @@ class ShoppingMall:
     def save_sales(self, order):
         with open('sales.txt', 'a', encoding='utf-8') as f:
             total_price = order.product_price * order.quantity
-            f.write(f"{order.product_name},{order.quantity},{total_price}원,{order.order_date}\n")
+            f.write(f"{order.product_id},{order.product_name},{order.quantity},{total_price}원\n")
 
 
    # 주문 목록 출력
@@ -443,9 +464,8 @@ class ShoppingMall:
             with open('products.txt', 'r', encoding='utf-8') as f:
                 for line in f:
                     if line.strip():  # Check if the line is not empty
-                        #product_name-에 공백이 포함되어 있으면 strip
-                        product_id, product_name, product_price, product_quantity = line.strip().split(',')
-                        self.products[product_id] = (product_name, int(product_price), int(product_quantity))  # 가격과 수량
+                        product_id, product_name, product_price, product_quantity,  = line.strip().split(',')
+                        self.products[product_id] = (product_name, int(product_price), int(product_quantity))
 
         except FileNotFoundError:
             pass  # File not found, do nothing
@@ -455,6 +475,7 @@ class ShoppingMall:
     def save_items(self):
         with open("products.txt", "w", encoding="utf-8") as file:
             for product_id, (name, price, quantity) in self.products.items():
+                #상품 이름에 공백이 포함되어 있으면 없어버리고 저장
                 file.write(f"{product_id},{name},{price},{quantity}\n")
 
     # 파일로부터 주문 읽어오기
@@ -475,6 +496,7 @@ class ShoppingMall:
         with open('orders.txt', 'w', encoding='utf-8') as f:
             for order in self.orders:
                 f.write(order.to_file_string())
+                self.last_order_date = order.order_date # 마지막 주문일 갱신
 
     # 고객 메뉴
     def customer_menu(self):
@@ -510,20 +532,6 @@ class ShoppingMall:
                     # Check for empty query
                     if not search_query:
                         print("\n검색어가 비어 있습니다. 다시 입력하세요.")
-                        print("\n(1) 다시 검색하기 \n(0) 검색 종료")
-                        search_choice = input("선택: ")
-                        if search_choice == '1':
-                            continue  # Restart search input
-                        elif search_choice == '0':
-                            self.view_products()
-                            break  # Go back to main menu
-                        else:
-                            print("잘못된 입력입니다. 다시 선택하세요.")
-                            continue
-
-                    # Check for special characters in query
-                    if not search_query.isalnum():
-                        print("\n특수 문자를 사용할 수 없습니다.")
                         print("\n(1) 다시 검색하기 \n(0) 검색 종료")
                         search_choice = input("선택: ")
                         if search_choice == '1':
@@ -629,5 +637,4 @@ class ShoppingMall:
 # 프로그램 실행
 if __name__ == "__main__":  
     shopping_mall = ShoppingMall()
-    shopping_mall.set_date()  # 현재 날짜 설정
     shopping_mall.role_selection()  # 역할 선택
