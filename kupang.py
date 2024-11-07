@@ -1,6 +1,7 @@
 import datetime
 import random
 import re
+import sys
 
 # 주문 클래스
 class Order:
@@ -66,15 +67,15 @@ class ShoppingMall:
 
                 # Ensure the quantity is a positive integer
                 product_quantity = int(input("수량 (개): "))
+                print(f"Debug: Entered quantity is {product_quantity}")  # Debugging statement
                 if product_quantity < 0:
                     print("수량은 음수일 수 없습니다. 다시 입력해주세요.")
                     continue
 
-                # Generate a unique product ID and check for duplicates
-                while True:
-                    product_id = f"PROD{random.randint(1000, 9999)}"
-                    if not self.check_id(product_id):
-                        break  # Unique ID found, break the loop
+                
+                product_id = f"PROD{random.randint(1000, 9999)}"
+                if not self.check_id(product_id):
+                    break  # Unique ID found, break the loop
 
                 # Register the product
                 self.products[product_id] = (product_name, product_price, product_quantity)
@@ -290,7 +291,7 @@ class ShoppingMall:
     def add_order(self):
         product_id = input("주문할 상품을 선택해 주세요: ")
 
-        if len(product_id) == 1 and product_id.isdigit():
+        if len(product_id) == 4 and product_id.isdigit():
             product_id = 'PROD' + product_id
 
         if product_id == '0':
@@ -322,15 +323,14 @@ class ShoppingMall:
             print("\n[ 고객 정보 ]") 
 
             while True:
-                customer_name = input("고객명: ")
                 #번호 입력 불가, 다시 입력하도록 함
-                if not customer_name.isalpha():
+                customer_name = input("고객명: ")
+                if not re.match(r'^[a-zA-Z가-힣\s]+$', customer_name):
                     print("오류: 잘못된 입력입니다.")
                     continue
         
                 customer_address = input("주소: ")
-                #번호와 문자만 가능, 다시 입력하도록 함
-                if not customer_address.isalnum():
+                if not re.match(r'^[a-zA-Z0-9가-힣\s\-]+$', customer_address):
                     print("오류: 잘못된 입력입니다.")
                     continue
 
@@ -375,7 +375,7 @@ class ShoppingMall:
                         
                         order_id = f"ORD{random.randint(1, 2)}"  # 고유 주문 ID 생성
                         # 주문 번호 중복 검사
-                        if self.check_id(order_id):
+                        if not self.check_id(order_id):
                         # 주문 번호가 중복되면 주문을 종료하거나 다시 입력받도록 처리
                             print("주문 번호가 중복되었습니다")
                             return
@@ -510,88 +510,88 @@ class ShoppingMall:
         
         # Step 1: Ask if the customer wants to view products
         print("상품 목록을 조회하시겠습니까? \n\n(1) YES \n(2) NO: ")
-        while True:
-            view_choice = input("\n선택: ")
-            if view_choice == '1':
-                self.view_products()  # Show products if they choose "YES"
-                break  # Exit the loop after showing products
-            elif view_choice == '2':
-                print("이전 화면으로 돌아갑니다.")
-                self.role_selection()  # Return to role selection
-                return
-            else:
-                print("오류 잘못된 입력입니다.")  # Prompt again for valid input
+        
+        view_choice = input("\n선택: ")
+        if view_choice == '1':
+            self.view_products()  # Show products if they choose "YES"
+        elif view_choice == '2':
+            print("이전 화면으로 돌아갑니다.")
+            # return to the role selection menu
+            self.role_selection()
+        else:
+            print("오류 잘못된 입력입니다.")  # Prompt again for valid input
 
-        # Step 2: Main customer menu after showing products
-        while True:
-            print("\n(1) 상품 검색\n(2) 상품 선택\n(0) 종료")
-            choice = input("선택: ")
+        # Step 2: Only view_choice 1 will proceed to the next step
+        if view_choice == '1':
+            while True:
+                print("\n(1) 상품 검색\n(2) 상품 선택\n(0) 종료")
+                choice = input("선택: ")
 
-            if choice == '1':
-                while True:
-                    print("상품 검색 화면으로 넘어갑니다.")
-                    print("\n[상품 검색]")
+                if choice == '1':
+                    while True:
+                        print("상품 검색 화면으로 넘어갑니다.")
+                        print("\n[상품 검색]")
 
-                    search_query = input("\n검색어를 입력하세요: ")
+                        search_query = input("\n검색어를 입력하세요: ")
 
-                    # Check for empty query
-                    if not search_query:
-                        print("\n검색어가 비어 있습니다. 다시 입력하세요.")
-                        print("\n(1) 다시 검색하기 \n(0) 검색 종료")
-                        search_choice = input("선택: ")
-                        if search_choice == '1':
-                            continue  # Restart search input
-                        elif search_choice == '0':
-                            self.view_products()
-                            break  # Go back to main menu
+                        # Check for empty query
+                        if not search_query:
+                            print("\n검색어가 비어 있습니다. 다시 입력하세요.")
+                            print("\n(1) 다시 검색하기 \n(0) 검색 종료")
+                            search_choice = input("선택: ")
+                            if search_choice == '1':
+                                continue  # Restart search input
+                            elif search_choice == '0':
+                                self.view_products()
+                                break  # Go back to main menu
+                            else:
+                                print("잘못된 입력입니다. 다시 선택하세요.")
+                                continue
+
+                        # Perform search
+                        search_results = self.search_products(search_query)
+                        if search_results:
+                            print(f"\n해당되는 데이터가 {len(search_results)}개 있습니다.")
+                            print(f"\n{'상품 번호':<15} {'상품명':<15} {'가격 (단위 : 원)':<15} {'수량 (단위 : 개)':<10}")
+                            for product_id, (name, price, quantity) in search_results.items():
+                                print(f"{product_id:<15} {name:<15} {price:<15} {quantity:<10}")
+
+                            print("\n(1) 상품 주문하기 \n(2) 다시 검색하기 \n(0) 검색 종료")
+                            search_choice = input("선택: ")
+                            if search_choice == '1':
+                                self.add_order()
+                                break  # Exit to main menu after order
+                            elif search_choice == '2':
+                                continue  # Restart search input
+                            elif search_choice == '0':
+                                self.view_products()
+                                break  # Go back to main menu
+                            else:
+                                print("잘못된 입력입니다. 다시 선택하세요.")
                         else:
-                            print("잘못된 입력입니다. 다시 선택하세요.")
-                            continue
+                            print("\n해당되는 데이터가 없습니다.")
+                            print("\n(1) 다시 검색하기 \n(0) 검색 종료")
+                            search_choice = input("선택: ")
+                            if search_choice == '1':
+                                continue  # Restart search input
+                            elif search_choice == '0':
+                                self.view_products()
+                                break  # Go back to main menu
+                            else:
+                                print("잘못된 입력입니다. 다시 선택하세요.")
+                    
 
-                    # Perform search
-                    search_results = self.search_products(search_query)
-                    if search_results:
-                        print(f"\n해당되는 데이터가 {len(search_results)}개 있습니다.")
-                        print(f"\n{'상품 번호':<15} {'상품명':<15} {'가격 (단위 : 원)':<15} {'수량 (단위 : 개)':<10}")
-                        for product_id, (name, price, quantity) in search_results.items():
-                            print(f"{product_id:<15} {name:<15} {price:<15} {quantity:<10}")
+                elif choice == '2':
+                    print("상품 선택 화면으로 넘어갑니다.")
+                    print("\n[상품 선택]")
+                    self.view_products()
+                    self.add_order()  # Proceed to order selection
 
-                        print("\n(1) 상품 주문하기 \n(2) 다시 검색하기 \n(0) 검색 종료")
-                        search_choice = input("선택: ")
-                        if search_choice == '1':
-                            self.add_order()
-                            break  # Exit to main menu after order
-                        elif search_choice == '2':
-                            continue  # Restart search input
-                        elif search_choice == '0':
-                            self.view_products()
-                            break  # Go back to main menu
-                        else:
-                            print("잘못된 입력입니다. 다시 선택하세요.")
-                    else:
-                        print("\n해당되는 데이터가 없습니다.")
-                        print("\n(1) 다시 검색하기 \n(0) 검색 종료")
-                        search_choice = input("선택: ")
-                        if search_choice == '1':
-                            continue  # Restart search input
-                        elif search_choice == '0':
-                            self.view_products()
-                            break  # Go back to main menu
-                        else:
-                            print("잘못된 입력입니다. 다시 선택하세요.")
-                
-
-            elif choice == '2':
-                print("상품 선택 화면으로 넘어갑니다.")
-                print("\n[상품 선택]")
-                self.view_products()
-                self.add_order()  # Proceed to order selection
-
-            elif choice == '0':
-                print("이전 화면으로 돌아갑니다.")
-                break
-            else:
-                print("잘못된 입력입니다. 다시 선택하세요.")
+                elif choice == '0':
+                    print("이전 화면으로 돌아갑니다.")
+                    break
+                else:
+                    print("잘못된 입력입니다. 다시 선택하세요.")
 
 
     # 관리자 메뉴
@@ -632,8 +632,9 @@ class ShoppingMall:
                     else:
                         print("잘못된 코드입니다.")
             elif role == '0':
-                print("프로그램이 종료 됩니다 .")
-                break
+                print("프로그램이 종료 됩니다 .") # 프로그램 종료 
+                sys.exit()
+
             else:
                 print("잘못된 입력입니다.")
 
