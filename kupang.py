@@ -49,27 +49,32 @@ class ShoppingMall:
         while True:
             product_name = input("상품명: ")
 
-            # Check for duplicate product name
-            if any(product_name.lower() == name.lower() for _, (name, _, _) in self.products.items()):
-                print("이미 동일한 이름의 상품이 존재합니다. 다른 이름을 입력해주세요.")
-                continue
+            if product_name == "0":
+                    return 
 
-            # Validate the product name
-            if not self.is_valid_product_name(product_name):
-                return
+            # Validate the product name, and re-prompt until valid
+            while not self.is_valid_product_name(product_name):
+                product_name = input("상품명: ")
+                
 
             try:
+                # Ensure the price is a positive integer
                 product_price = int(input("가격 (원): "))
                 if product_price < 0:
                     print("가격은 음수일 수 없습니다. 다시 입력해주세요.")
                     continue
+
+                # Ensure the quantity is a positive integer
                 product_quantity = int(input("수량 (개): "))
                 if product_quantity < 0:
                     print("수량은 음수일 수 없습니다. 다시 입력해주세요.")
                     continue
 
-                # Generate a unique product ID
-                product_id = f"PROD{random.randint(1000, 9999)}"
+                # Generate a unique product ID and check for duplicates
+                while True:
+                    product_id = f"PROD{random.randint(1000, 9999)}"
+                    if not self.check_id(product_id):
+                        break  # Unique ID found, break the loop
 
                 # Register the product
                 self.products[product_id] = (product_name, product_price, product_quantity)
@@ -80,19 +85,18 @@ class ShoppingMall:
                 self.save_items()
                 break  # Exit the loop after successful registration
 
-            except ValueError as e:
-                print(f"입력 오류: {e}. 가격과 수량은 정수만 입력 가능합니다. 다시 시도해주세요.")
-
+            except ValueError:
+                print("\n입력 오류: 가격과 수량은 정수만 입력 가능합니다. 다시 시도해주세요.")
 
 
     def is_valid_product_name(self, product_name):
         # If the product name is '0', show a return message without error
         if product_name == "0":
-            print("이전 화면으로 돌아갑니다.")
+            print("\n이전 화면으로 돌아갑니다.")
             return False
         # If the product name is any other number, show an error message
         elif product_name.isdigit():
-            print("오류: 잘못된 입력입니다.")
+            print("\n오류: 잘못된 입력입니다.")
             return False
         return True
     
@@ -262,6 +266,7 @@ class ShoppingMall:
     # 관리자용 상품 관리
     def manage_products(self):
         while True:
+            self.view_products()
             print("\n(1) 상품 등록\n(2) 상품 수정\n(3) 단종 등록\n(0) 뒤로가기")
             choice = input("메뉴 번호 입력 (0~3): ")
             if choice == '1':
@@ -277,7 +282,7 @@ class ShoppingMall:
                 self.remove_product_by_name(product_name)  # 상품 삭제
             elif choice == '0':
                 print("이전 화면으로 돌아갑니다.")
-                break
+                return
             else:
                 print("잘못된 입력입니다. 다시 선택하세요.")
 
@@ -285,18 +290,12 @@ class ShoppingMall:
     def add_order(self):
         product_id = input("주문할 상품을 선택해 주세요: ")
 
-        if len(product_id) == 4 and product_id.isdigit():
+        if len(product_id) == 1 and product_id.isdigit():
             product_id = 'PROD' + product_id
 
         if product_id == '0':
             print("주문을 종료합니다.")
             return  # 주문 종료
-        
-        # 상품 번호 중복 검사
-        if not self.check_id(product_id):
-            # 상품 번호가 중복되면 주문을 종료하거나 다시 입력받도록 처리
-            self.add_order()
-            return
 
         if product_id in self.products:
             product_name, product_price, product_quantity = self.products[product_id]
@@ -373,8 +372,14 @@ class ShoppingMall:
                 while True:
                     choice = input("\n선택: ")
                     if choice == '1':
+                        
+                        order_id = f"ORD{random.randint(1, 2)}"  # 고유 주문 ID 생성
+                        # 주문 번호 중복 검사
+                        if self.check_id(order_id):
+                        # 주문 번호가 중복되면 주문을 종료하거나 다시 입력받도록 처리
+                            print("주문 번호가 중복되었습니다")
+                            return
 
-                        order_id = f"ORD{random.randint(1000, 9999)}"  # 고유 주문 ID 생성
                         order = Order(order_id, product_id, product_name, product_price, quantity, customer_name, customer_address, order_date)
                         self.orders.append(order)
 
@@ -596,8 +601,6 @@ class ShoppingMall:
             print("\n(1) 상품 목록 조회\n(2) 주문 조회\n(3) 매출 조회\n(0) 종료")
             choice = input("\n메뉴 번호 입력 (0~3): ")
             if choice == '1':
-                print("[ 상 품  목 록 ]")
-                self.view_products()
                 self.manage_products()  # 상품 목록 및 관리
             elif choice == '2':
                 self.view_orders()  # 주문 조회

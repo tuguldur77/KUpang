@@ -1,4 +1,0 @@
-PROD9666,banana,5000,46
-PROD1146,England banana,5000,50
-PROD2516,apple,5000,18
-PROD9710,Tailand banana,5000,20
