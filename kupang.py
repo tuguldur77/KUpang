@@ -139,14 +139,18 @@ class ShoppingMall:
 
             if choice == '1':
                 # Update name
-                new_name = input("수정된 상품명: ")
+                print("현재 상품명:", matching_products[product_id][0])
+                new_name = input("수정할 상품의 이름을 입력하세요: ")
                 if new_name:
                     if not self.is_valid_product_name(new_name):
                         continue  # Invalid name, loop back to the options
                     product_name = new_name
+                    self.products[product_id] = (product_name, price, quantity)
+                    self.save_items()
                     print("수정이 완료되었습니다.")
 
             elif choice == '2':
+                print("현재 가격:", matching_products[product_id][1])
                 # Update price with non-negative check
                 try:
                     new_price = input("새로운 가격 (변경하지 않으려면 Enter): ")
@@ -156,11 +160,14 @@ class ShoppingMall:
                             print("가격은 음수일 수 없습니다. 다시 입력해주세요.")
                             continue
                         price = new_price
+                        self.products[product_id] = (product_name, price, quantity)
+                        self.save_items()
                         print("수정이 완료되었습니다.")
                 except ValueError:
                     print("가격은 숫자만 입력 가능합니다.")
 
             elif choice == '3':
+                print("현재 수량:", matching_products[product_id][2])
                 # Update quantity with non-negative check
                 try:
                     new_quantity = input("새로운 수량 (변경하지 않으려면 Enter): ")
@@ -170,6 +177,8 @@ class ShoppingMall:
                             print("수량은 음수일 수 없습니다. 다시 입력해주세요.")
                             continue
                         quantity = new_quantity
+                        self.products[product_id] = (product_name, price, quantity)
+                        self.save_items()
                         print("수정이 완료되었습니다.")
                 except ValueError:
                     print("수량은 숫자만 입력 가능합니다.")
@@ -180,13 +189,6 @@ class ShoppingMall:
 
             else:
                 print("잘못된 입력입니다. 다시 선택하세요.")
-
-        # Save the updated product information back to the products dictionary
-        self.products[product_id] = (product_name, price, quantity)
-
-
-        # Save updated product information to file
-        self.save_items()
 
     def remove_product_by_name(self, product_name):
         # Find products matching the given name
