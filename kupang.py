@@ -588,7 +588,13 @@ class ShoppingMall:
                     print("상품 선택 화면으로 넘어갑니다.")
                     print("\n[상품 선택]")
                     self.view_products()
-                    self.add_order()  # Proceed to order selection
+                    #products.txt 파일에 저장된 상품이 없을 경우
+                    if not self.products:
+                        print("이전 화면으로 넘아갑니다.")
+                        break
+                    else:
+                        self.add_order()
+                        break
 
                 elif choice == '0':
                     print("이전 화면으로 돌아갑니다.")
