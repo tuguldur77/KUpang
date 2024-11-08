@@ -138,21 +138,24 @@ class ShoppingMall:
             choice = input("\n메뉴 번호 입력 (0~3): ")
 
             if choice == '1':
-                # Update name
-                print("현재 상품명:", matching_products[product_id][0])
-                new_name = input("수정할 상품의 이름을 입력하세요: ")
-                if new_name:
-                    if not self.is_valid_product_name(new_name):
-                        continue  # Invalid name, loop back to the options
-                    product_name = new_name
-                    self.products[product_id] = (product_name, price, quantity)
-                    self.save_items()
-                    print("수정이 완료되었습니다.")
+                try:
+                    # Update name
+                    print(f"현재 상품명: {matching_products[product_id][0]}")
+                    new_name = input("새로운 상품명 (변경하지 않으려면 Enter): ")
+                    if new_name:
+                        if not self.is_valid_product_name(new_name):
+                            continue  # Invalid name, loop back to the options
+                        product_name = new_name
+                        self.products[product_id] = (product_name, price, quantity)
+                        self.save_items()
+                        print("수정이 완료되었습니다.")
+                except ValueError:
+                    print("상품명은 문자열만 입력 가능합니다.")
 
             elif choice == '2':
-                print("현재 가격:", matching_products[product_id][1])
                 # Update price with non-negative check
                 try:
+                    print(f"현재 가격: {matching_products[product_id][1]}")
                     new_price = input("새로운 가격 (변경하지 않으려면 Enter): ")
                     if new_price:
                         new_price = int(new_price)
@@ -167,9 +170,9 @@ class ShoppingMall:
                     print("가격은 숫자만 입력 가능합니다.")
 
             elif choice == '3':
-                print("현재 수량:", matching_products[product_id][2])
                 # Update quantity with non-negative check
                 try:
+                    print(f"현재 수량: {matching_products[product_id][2]}")
                     new_quantity = input("새로운 수량 (변경하지 않으려면 Enter): ")
                     if new_quantity:
                         new_quantity = int(new_quantity)
