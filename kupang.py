@@ -37,7 +37,6 @@ class ShoppingMall:
         self.products = {}  # 상품 목록 (상품명: (가격, 수량))
         self.load_items()
         self.load_orders()
-        self.last_order_date = None  # 마지막 주문일
 
     def check_id(self, product_id):
         #상품 번호가 이미 등록된 상품 번호와 중복되는지 확인하는 함수
@@ -67,7 +66,6 @@ class ShoppingMall:
 
                 # Ensure the quantity is a positive integer
                 product_quantity = int(input("수량 (개): "))
-                print(f"Debug: Entered quantity is {product_quantity}")  # Debugging statement
                 if product_quantity < 0:
                     print("수량은 음수일 수 없습니다. 다시 입력해주세요.")
                     continue
@@ -287,9 +285,9 @@ class ShoppingMall:
             else:
                 print("잘못된 입력입니다. 다시 선택하세요.")
 
-   # 주문 추가 (고객용)
+    # 주문 추가 (고객용)
     def add_order(self):
-        product_id = input("주문할 상품을 선택해 주세요: ")
+        product_id = input("\n주문할 상품을 선택해 주세요: ")
 
         if len(product_id) == 4 and product_id.isdigit():
             product_id = 'PROD' + product_id
@@ -334,7 +332,7 @@ class ShoppingMall:
                     print("오류: 잘못된 입력입니다.")
                     continue
 
-                # 주문일 입력 부분
+                self.last_order_date = Order.from_file_string(self.orders[-1].to_file_string()).order_date if self.orders else None
                 if self.last_order_date is None:
                     # 첫 주문일 경우, 아무 날짜나 입력받도록 허용
                     while True:
@@ -345,7 +343,7 @@ class ShoppingMall:
                         else:
                             print("오류: 날짜는 'YYYY-MM-DD' 형식이어야 합니다. 다시 입력하세요.")
                 else:
-                    # 마지막 주문일이 있을 경우, 그 날짜 이후로만 입력받도록 함
+                    # 마지막 주문일이 있을 경우, 그 날짜 이후로만 입력받도록 함, orders.txt 파일에 저장된 마지막 주문일을 읽어옴
                     while True:
                         order_date = input("주문일 (" + str(self.last_order_date) + "~): ")
                         if re.match(r"^\d{4}-\d{2}-\d{2}$", order_date):
@@ -373,7 +371,7 @@ class ShoppingMall:
                     choice = input("\n선택: ")
                     if choice == '1':
                         
-                        order_id = f"ORD{random.randint(1, 2)}"  # 고유 주문 ID 생성
+                        order_id = f"ORD{random.randint(1000, 9999)}"  # 고유 주문 ID 생성
                         # 주문 번호 중복 검사
                         if not self.check_id(order_id):
                         # 주문 번호가 중복되면 주문을 종료하거나 다시 입력받도록 처리
@@ -488,20 +486,20 @@ class ShoppingMall:
         try:
             with open('orders.txt', 'r', encoding='utf-8') as f:
                 for line in f:
-                    if line.strip():  # Check if the line is not empty
-                        order = Order.from_file_string(line)
+                    if line.strip():
+                        order = Order.from_file_string(line)  # Parse each order
                         self.orders.append(order)
         except FileNotFoundError:
-            pass  # File not found, do nothing
+            pass
         except ValueError:
-            print("파일 형식이 잘못되었습니다. 주문 정보를 확인하세요.")  # Handle incorrect format
+            print("파일 형식이 잘못되었습니다. 주문 정보를 확인하세요.")
+
 
     # 주문 정보를 파일에 저장
     def save_orders(self):
         with open('orders.txt', 'w', encoding='utf-8') as f:
             for order in self.orders:
-                f.write(order.to_file_string())
-                self.last_order_date = order.order_date # 마지막 주문일 갱신
+                f.write(order.to_file_string()) 
 
     # 고객 메뉴
     def customer_menu(self):
