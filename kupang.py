@@ -101,97 +101,111 @@ class ShoppingMall:
     
     def update_product_by_name(self, product_name):
         # Find products matching the given name
-        matching_products = {
-            product_id: (name, price, quantity)
-            for product_id, (name, price, quantity) in self.products.items()
-            if product_name.lower() in name.lower()
-        }
-
-        # Check if there are matching products
-        if not matching_products:
-            print("해당 이름의 상품이 없습니다. 다시 확인해 주세요.")
-            return
-
-        # Display the matching products
-        print("\n[ 검색 결과 ]")
-        print(f"\n{'상품번호':<15} {'상품명':<15} {'가격(단위: 원)':<15} {'수량(단위: 개)':<10}")
-        for product_id, (name, price, quantity) in matching_products.items():
-            print(f"{product_id:<15} {name:<15} {price:<15} {quantity:<10}")
-
-        # Ask for the specific product ID to edit
-        product_id = input("\n수정할 상품번호를 입력하세요: ")
-
-        if len(product_id) == 4 and product_id.isdigit():
-            product_id = 'PROD' + product_id
-
-        if product_id not in matching_products:
-            print("유효하지 않은 상품 번호입니다.")
-            return
-
-        while True:
-            # Display options for the user to choose what to update
-            print("\n수정할 사항")
-            print("\n(1) 상품명")
-            print("(2) 가격")
-            print("(3) 수량")
-            print("(0) 뒤로 가기")
-            choice = input("\n메뉴 번호 입력 (0~3): ")
-
-            if choice == '1':
-                try:
-                    # Update name
-                    print(f"현재 상품명: {matching_products[product_id][0]}")
-                    new_name = input("새로운 상품명 (변경하지 않으려면 Enter): ")
-                    if new_name:
-                        if not self.is_valid_product_name(new_name):
-                            continue  # Invalid name, loop back to the options
-                        product_name = new_name
-                        self.products[product_id] = (product_name, price, quantity)
-                        self.save_items()
-                        print("수정이 완료되었습니다.")
-                except ValueError:
-                    print("상품명은 문자열만 입력 가능합니다.")
-
-            elif choice == '2':
-                # Update price with non-negative check
-                try:
-                    print(f"현재 가격: {matching_products[product_id][1]}")
-                    new_price = input("새로운 가격 (변경하지 않으려면 Enter): ")
-                    if new_price:
-                        new_price = int(new_price)
-                        if new_price < 0:
-                            print("가격은 음수일 수 없습니다. 다시 입력해주세요.")
-                            continue
-                        price = new_price
-                        self.products[product_id] = (product_name, price, quantity)
-                        self.save_items()
-                        print("수정이 완료되었습니다.")
-                except ValueError:
-                    print("가격은 숫자만 입력 가능합니다.")
-
-            elif choice == '3':
-                # Update quantity with non-negative check
-                try:
-                    print(f"현재 수량: {matching_products[product_id][2]}")
-                    new_quantity = input("새로운 수량 (변경하지 않으려면 Enter): ")
-                    if new_quantity:
-                        new_quantity = int(new_quantity)
-                        if new_quantity < 0:
-                            print("수량은 음수일 수 없습니다. 다시 입력해주세요.")
-                            continue
-                        quantity = new_quantity
-                        self.products[product_id] = (product_name, price, quantity)
-                        self.save_items()
-                        print("수정이 완료되었습니다.")
-                except ValueError:
-                    print("수량은 숫자만 입력 가능합니다.")
-
-            elif choice == '0':
-                print("이전 화면으로 돌아갑니다.")
-                break
-
+        
+            self.load_items()
+            matching_products = {
+                product_id: (name, price, quantity)
+                for product_id, (name, price, quantity) in self.products.items()
+                if product_name.lower() in name.lower()
+            }
+            
+            # Check if there are matching products
+            if not matching_products:
+                print("해당 이름의 상품이 없습니다. 다시 확인해 주세요.")
+                return
+            if len(matching_products) == 1:
+                product_id, (product_name, price, quantity) = next(iter(matching_products.items()))
             else:
-                print("잘못된 입력입니다. 다시 선택하세요.")
+                # Display the matching products
+                print("\n[ 검색 결과 ]")
+                print(f"\n{'상품번호':<15} {'상품명':<15} {'가격(단위: 원)':<15} {'수량(단위: 개)':<10}")
+                for product_id, (name, price, quantity) in matching_products.items():
+                    print(f"{product_id:<15} {name:<15} {price:<15} {quantity:<10}")
+
+                # Ask for the specific product ID to edit
+                product_id = input("\n수정할 상품번호를 입력하세요: ")
+
+                if len(product_id) == 4 and product_id.isdigit():
+                    product_id = 'PROD' + product_id
+
+                if product_id not in matching_products:
+                    print("유효하지 않은 상품 번호입니다.")
+                    return
+
+            
+                # Display options for the user to choose what to update
+            while True:      
+                print("\n수정할 사항")
+                print("\n(1) 상품명")
+                print("(2) 가격")
+                print("(3) 수량")
+                print("(0) 뒤로 가기")
+                choice = input("\n메뉴 번호 입력 (0~3): ")
+
+                if choice == '1':
+                    
+                    try:
+                        # Update name
+                        print(f"현재 상품명: {matching_products[product_id][0]}")
+                        new_name = input("새로운 상품명 (변경하지 않으려면 Enter): ")
+                        if new_name:
+                            if not self.is_valid_product_name(new_name):
+                                continue  # Invalid name, loop back to the options
+                            product_name = new_name
+                            self.products[product_id] = (product_name, price, quantity)
+                            self.save_items()
+                            print("수정이 완료되었습니다.")
+                            
+                    except ValueError:
+                        print("상품명은 문자열만 입력 가능합니다.")
+
+                elif choice == '2':
+                
+                    # Update price with non-negative check
+                    try:
+                        print(f"현재 가격: {matching_products[product_id][1]}")
+                        new_price = input("새로운 가격 (변경하지 않으려면 Enter): ")
+                        if new_price:
+                            new_price = int(new_price)
+                            if new_price < 0:
+                                print("가격은 음수일 수 없습니다. 다시 입력해주세요.")
+                                continue
+                            price = new_price
+                            self.products[product_id] = (product_name, price, quantity)
+                            self.save_items()
+                            
+                            print("수정이 완료되었습니다.")
+                            
+                    except ValueError:
+                        print("가격은 숫자만 입력 가능합니다.")
+
+                elif choice == '3':
+                    
+                    # Update quantity with non-negative check
+                    try:
+                        print(f"현재 수량: {matching_products[product_id][2]}")
+                        new_quantity = input("새로운 수량 (변경하지 않으려면 Enter): ")
+                        if new_quantity:
+                            new_quantity = int(new_quantity)
+                            if new_quantity < 0:
+                                print("수량은 음수일 수 없습니다. 다시 입력해주세요.")
+                                continue
+                            quantity = new_quantity
+                            self.products[product_id] = (product_name, price, quantity)
+                            self.save_items()
+                            print("수정이 완료되었습니다.")
+                    except ValueError:
+                        print("수량은 숫자만 입력 가능합니다.")
+
+                elif choice == '0':
+                    print("이전 화면으로 돌아갑니다.")
+                    break
+                    
+
+                else:
+                    print("잘못된 입력입니다. 다시 선택하세요.")
+                    break
+                
 
     def remove_product_by_name(self, product_name):
         # Find products matching the given name
@@ -245,7 +259,8 @@ class ShoppingMall:
                 print(f"{product_id:<15} {product_name:<15} {price:<15} {quantity:<10}")
 
     def remove_space(self, query):
-        return re.sub(r'[^a-zA-Z0-9]', '', query)
+        # return re.sub(r'[^a-zA-Z0-9]', '', query)
+         return query.strip()
     
     # Modified search_products function
     def search_products(self, query):
@@ -292,7 +307,7 @@ class ShoppingMall:
 
     # 주문 추가 (고객용)
     def add_order(self):
-        product_id = input("\n주문할 상품을 선택해 주세요: ")
+        product_id = input("\n주문할 상품 번호를 입력해 주세요: ")
 
         if len(product_id) == 4 and product_id.isdigit():
             product_id = 'PROD' + product_id
@@ -410,7 +425,7 @@ class ShoppingMall:
                             self.customer_menu()
                         break
                     elif choice == '2':
-                        print("주문을 취소되었습니다. 상품 목록 페이지로 넘어갑니다.")
+                        print("주문이 취소되었습니다. 상품 목록 페이지로 넘어갑니다.")
                         self.view_products()
                         self.add_order()
                     else:
@@ -468,6 +483,7 @@ class ShoppingMall:
 
     # 파일로부터 상품 읽어오기
     def load_items(self):
+        self.products.clear()
         try:
             with open('products.txt', 'r', encoding='utf-8') as f:
                 for line in f:
@@ -512,7 +528,7 @@ class ShoppingMall:
         print(f"\n*((**(: 환영합니다  :) **))*")
         
         # Step 1: Ask if the customer wants to view products
-        print("상품 목록을 조회하시겠습니까? \n\n(1) YES \n(2) NO: ")
+        print("상품 목록을 조회하시겠습니까? \n\n(1) YES \n(2) NO")
         
         view_choice = input("\n선택: ")
         if view_choice == '1':
@@ -531,6 +547,7 @@ class ShoppingMall:
                 choice = input("선택: ")
 
                 if choice == '1':
+                    self.load_items()
                     while True:
                         print("상품 검색 화면으로 넘어갑니다.")
                         print("\n[상품 검색]")
@@ -538,7 +555,7 @@ class ShoppingMall:
                         search_query = input("\n검색어를 입력하세요: ")
 
                         # Check for empty query
-                        if not search_query:
+                        if not search_query.strip():
                             print("\n검색어가 비어 있습니다. 다시 입력하세요.")
                             print("\n(1) 다시 검색하기 \n(0) 검색 종료")
                             search_choice = input("선택: ")
@@ -588,13 +605,7 @@ class ShoppingMall:
                     print("상품 선택 화면으로 넘어갑니다.")
                     print("\n[상품 선택]")
                     self.view_products()
-                    #products.txt 파일에 저장된 상품이 없을 경우
-                    if not self.products:
-                        print("이전 화면으로 넘아갑니다.")
-                        break
-                    else:
-                        self.add_order()
-                        break
+                    self.add_order()  # Proceed to order selection
 
                 elif choice == '0':
                     print("이전 화면으로 돌아갑니다.")
@@ -617,7 +628,7 @@ class ShoppingMall:
                 self.view_sales()  # 매출 조회
             elif choice == '0':
                 print("프로그램이 종료합니다 .")
-                break
+                break;
             else:
                 print("오류 : 잘못된 입력입니다 .")
 
