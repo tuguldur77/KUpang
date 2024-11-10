@@ -2,6 +2,7 @@ import datetime
 import random
 import re
 import sys
+import os
 
 # 주문 클래스
 class Order:
@@ -259,26 +260,27 @@ class ShoppingMall:
                 print(f"{product_id:<15} {product_name:<15} {price:<15} {quantity:<10}")
 
     def remove_space(self, query):
-        # return re.sub(r'[^a-zA-Z0-9]', '', query)
-         return query.strip()
+         re.sub(r'[^\uAC00-\uD7AFa-zA-Z0-9]', '', query)
+        #  return query.strip()
     
-    # Modified search_products function
+
     def search_products(self, query):
-        # Remove spaces from the search query
-        query = self.remove_space(query)
-        
-        # 검색어가 비어 있으면 빈 딕셔너리 반환
-        if not query:
+    # 특수문자 검사
+        if re.search(r'[^\w\s]', query):
+            print("\n특수문자를 입력할 수 없습니다.")
+            return None
+
+        # 공백 제거 후 빈 문자열 검사
+        if not query.strip():
             print("\n검색어가 비어 있습니다. 다시 입력하세요.")
-            return {}
-        
-        # 제품을 검색하여 결과를 딕셔너리로 반환
+            return None
+
+        # 검색 로직
         results = {
             product_id: (name, price, quantity)
             for product_id, (name, price, quantity) in self.products.items()
-            if self.remove_space(name.lower()).find(query.lower()) != -1
+            if self.remove_space(name.lower()).find(self.remove_space(query.lower())) != -1
         }
-        
         return results
 
 
@@ -406,10 +408,15 @@ class ShoppingMall:
                         self.products[product_id] = (product_name, product_price, new_quantity)  # 수량 업데이트
                         print(f"주문이 완료되었습니다. 주문 완료 페이지로 넘어갑니다.")
 
+
+                        # 첫 사용자가 주문을 끝내면 users.txt 생성
+
+
                         # 파일에 주문과 상품 정보 저장
                         self.save_orders()
                         self.save_items()  # 상품 정보도 함께 저장
                         self.save_sales(order)  # 매출 정보 저장
+                        self.save_user()
                         # 주문 추가 완료 후 루프 종료
                         print("\n[ 주문 완료 ]")
                         print(f"주문번호: {order_id}")
@@ -522,6 +529,13 @@ class ShoppingMall:
             for order in self.orders:
                 f.write(order.to_file_string()) 
 
+
+    # 유저 정보를 파일에 저장
+    def save_user(self):
+        if not os.path.isfile('users.txt'):
+            with open('users.txt', 'w', encoding='utf-8') as f:
+                f.write("고객명,주소,아이디,비밀번호\n")
+
     # 고객 메뉴
     def customer_menu(self):
         print("\n[고객]")
@@ -548,28 +562,32 @@ class ShoppingMall:
 
                 if choice == '1':
                     self.load_items()
+                    search_choice_save = ''
                     while True:
+                        if search_choice_save == '0': 
+                            continue
                         print("상품 검색 화면으로 넘어갑니다.")
                         print("\n[상품 검색]")
 
                         search_query = input("\n검색어를 입력하세요: ")
 
-                        # Check for empty query
-                        if not search_query.strip():
-                            print("\n검색어가 비어 있습니다. 다시 입력하세요.")
+                      
+                        search_results = self.search_products(search_query)
+                    # while True:   
+                        if search_results == None: 
                             print("\n(1) 다시 검색하기 \n(0) 검색 종료")
                             search_choice = input("선택: ")
                             if search_choice == '1':
                                 continue  # Restart search input
                             elif search_choice == '0':
                                 self.view_products()
+                                search_choice_save = search_choice
                                 break  # Go back to main menu
                             else:
                                 print("잘못된 입력입니다. 다시 선택하세요.")
                                 continue
-
-                        # Perform search
-                        search_results = self.search_products(search_query)
+                                
+                                continue
                         if search_results:
                             print(f"\n해당되는 데이터가 {len(search_results)}개 있습니다.")
                             print(f"\n{'상품 번호':<15} {'상품명':<15} {'가격 (단위 : 원)':<15} {'수량 (단위 : 개)':<10}")
