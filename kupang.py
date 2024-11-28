@@ -4,6 +4,7 @@ import random
 import re
 import sys
 import os
+from datetime import datetime, timedelta
 
 # 주문 클래스
 class Order:
@@ -447,23 +448,41 @@ class ShoppingMall:
             f.write(f"{order.product_id},{order.product_name},{order.quantity},{total_price}원\n")
 
 
-   # 주문 목록 출력
+    # 주문 목록 출력
     def view_orders(self):
         print("\n[ 주문 조회 ]")
+
+        # Check if there are any orders
         if not self.orders:
             print("등록된 주문이 없습니다.")
-        else:
-            # 헤더 출력
-            print(f"{'주문번호':<15} {'고객명':<15} {'주소':<30} {'주문상품명':<15} {'상품번호':<15} {'가격(원)':<15} {'수량':<10} {'주문일':<15}")
+            return
 
-            for order in self.orders:
-                print(f"{order.order_id:<15} {order.customer_name:<15} {order.customer_address:<30} {order.product_name:<15} {order.product_id:<15} {order.product_price:<15} {order.quantity:<10} {order.order_date:<15}")
+        # Load return counts from returns.txt
+        returned_counts = {}
+        try:
+            with open('returns.txt', 'r', encoding='utf-8') as f:
+                for line in f:
+                    order_id, _, quantity, _, _ = line.strip().split(',')
+                    returned_counts[order_id] = returned_counts.get(order_id, 0) + int(quantity)
+        except FileNotFoundError:
+            pass  # If returns.txt doesn't exist, all return counts are assumed to be 0
 
-        # 뒤로 가기 아무나 키나 누르면 이전 화면으로 돌아감
+        # Display the header
+        print(f"{'주문번호':<15} {'주문상품명':<15} {'상품번호':<15} {'가격(원)':<15} {'수량':<10} {'주문일':<15} {'고객 아이디':<15} {'반품 회수':<10}")
+
+        # Display each order with its return count
+        for order in self.orders:
+            # Get the return count from returned_counts, defaulting to 0 if not found
+            return_count = returned_counts.get(order.order_id, 0)
+            print(f"{order.order_id:<15} {order.product_name:<15} {order.product_id:<15} {order.product_price:<15} "
+                f"{order.quantity:<10} {order.order_date:<15} {order.customer_phone:<15} {return_count:<10}")
+
+        # Wait for user input to return to the previous screen
         input_key = input("\n뒤로가기 (아무 키나 입력하세요): ")
         if input_key:
             print("\n이전 화면으로 돌아갑니다.")
             self.admin_menu()
+
 
 
     # 매출 조회
@@ -582,6 +601,35 @@ class ShoppingMall:
 
     def giving_order_page(self):
 
+        # Load return attempts from returns.txt
+        return_attempts = []
+        try:
+            with open('returns.txt', 'r', encoding='utf-8') as f:
+                for line in f:
+                    order_id, _, quantity, return_date, customer_phone = line.strip().split(',')
+                    if customer_phone == self.current_user['phone']:
+                        return_attempts.append(datetime.strptime(return_date, "%Y-%m-%d"))
+        except FileNotFoundError:
+            pass  # No return attempts if returns.txt doesn't exist
+
+        # Parse the current user's order date into a datetime object
+        current_date_str = self.current_user.get('order_date')
+        try:
+            current_date = datetime.strptime(current_date_str, "%Y-%m-%d")
+        except (TypeError, ValueError):
+            print("유효하지 않은 날짜 형식입니다. 관리자에게 문의하세요.")
+            return
+        
+         # Filter return attempts within the last 7 days
+        recent_returns = [date for date in return_attempts if (current_date - date).days < 7]
+
+        # Check if the customer has exceeded the limit
+        if len(recent_returns) > 3:
+            print("\n[ 오류 ]")
+            print("최근 7일 동안 3회 이상의 반품 기록이 있습니다. 주문이 제한됩니다.")
+            print("이전 화면으로 돌아갑니다.")
+            return  # Exit to the previous menu
+
         # Step 1: Ask if the customer wants to view products
         print("\n상품 목록을 조회하시겠습니까? \n\n(1) YES \n(2) NO")
 
@@ -591,7 +639,7 @@ class ShoppingMall:
         elif view_choice == '2':
             print("이전 화면으로 돌아갑니다.")
             # return to the role selection menu
-            self.role_selection()
+            return
         else:
             print("오류 잘못된 입력입니다.")  # Prompt again for valid input
 
@@ -673,19 +721,49 @@ class ShoppingMall:
 
     def return_product(self):
         print("\n[반품 가능한 주문 목록]")
-
-        # Filter orders for the current user
-        customer_orders = [order for order in self.orders if order.customer_phone == self.current_user['phone']]
+        # Parse the current user's return date as a datetime object
+        return_date_str = self.current_user.get('order_date')
+        try:
+            return_date = datetime.strptime(return_date_str, "%Y-%m-%d")
+        except (TypeError, ValueError):
+            print("유효하지 않은 날짜 형식입니다. 관리자에게 문의하세요.")
+            return
+        
+        returned_quantities = {}
+        try:
+            with open('returns.txt', 'r', encoding='utf-8') as f:
+                for line in f:
+                    order_id, _, quantity, _, customer_phone = line.strip().split(',')
+                    if customer_phone == self.current_user['phone']:
+                        returned_quantities[order_id] = returned_quantities.get(order_id, 0) + int(quantity)
+        except FileNotFoundError:
+            pass  # No previous returns, continue
+        
+        eligible_orders = []
+        for order in self.orders:
+            if order.customer_phone != self.current_user['phone']:
+                continue
+            try:
+                # Parse the order date as a datetime object
+                order_date = datetime.strptime(order.order_date, "%Y-%m-%d")
+                # Check if the order date is within the last 7 days
+                if (return_date - order_date).days < 7:
+                    returned_quantity = returned_quantities.get(order.order_id, 0)
+                    eligible_orders.append((order, returned_quantity))
+            except (TypeError, ValueError):
+                print(f"유효하지 않은 주문 날짜: {order.order_date}")
+                continue
 
         # Check if there are any orders
-        if not customer_orders:
-            print("주문 내역이 없습니다.")
+        if not eligible_orders:
+            print("반품 가능한 주문 내역이 없습니다.")
             return
 
         # Display the orders in a table format
-        print(f"{'번호':<5} {'주문번호':<15} {'주문상품명':<15} {'상품번호':<15} {'가격(원)':<10} {'수량':<8} {'주문일':<15}")
-        for idx, order in enumerate(customer_orders, 1):
-            print(f"{idx:<5} {order.order_id:<15} {order.product_name:<15} {order.product_id:<15} {order.product_price:<10} {order.quantity:<8} {order.order_date:<15}")
+        print(f"{'번호':<5} {'주문번호':<15} {'주문상품명':<15} {'상품번호':<15} {'가격(원)':<10} {'수량':<8} {'주문일':<15} {'반품 회수':<10}") 
+        for idx, (order, returned_quantity) in enumerate(eligible_orders, 1):
+            print(f"{idx:<5} {order.order_id:<15} {order.product_name:<15} {order.product_id:<15} "
+                  f"{order.product_price:<10} {order.quantity:<8} {order.order_date:<15} {returned_quantity:<10}") 
 
         # Let the user select an order to return
         input_order_number = input("\n반품할 주문을 선택하세요 (0을 입력하면 취소): ").strip()
@@ -693,16 +771,20 @@ class ShoppingMall:
             print("반품이 취소되었습니다.")
             return
         # Locate the selected order by numeric portion of the order_id
-        selected_order = next(
-            (order for order in customer_orders if order.order_id[3:] == input_order_number),None)
-        if not selected_order:
+        selected_order_tuple = next(
+            ((order, returned_quantity) for order, returned_quantity in eligible_orders if order.order_id[3:] == input_order_number), 
+            None
+        )
+        if not selected_order_tuple:
             print("유효하지 않은 주문번호입니다. 다시 시도해주세요.")
             return
+
+        selected_order, returned_quantity = selected_order_tuple
 
         try:
             # Ask the user how many units they want to return
             quantity_to_return = int(input(f"\n'{selected_order.product_name}'의 반품 수량을 입력하세요: "))
-            if quantity_to_return <= 0 or quantity_to_return > selected_order.quantity:
+            if quantity_to_return <= 0 or quantity_to_return > (selected_order.quantity - returned_quantity):
                 print("잘못된 수량입니다. 다시 시도해주세요.")
                 return
         except ValueError:
@@ -714,11 +796,11 @@ class ShoppingMall:
         if confirm not in ['예', 'y', 'yes']:
             print("반품이 취소되었습니다.")
             return
-        return_date = self.current_user.get('order_date')
+
         # Update return record in returns.txt
         try:
             with open('returns.txt', 'a', encoding='utf-8') as f:
-                f.write(f"{selected_order.order_id},{selected_order.product_name},{quantity_to_return},{return_date},{self.current_user['phone']}\n")
+                f.write(f"{selected_order.order_id},{selected_order.product_name},{quantity_to_return},{return_date.strftime('%Y-%m-%d')},{self.current_user['phone']}\n")
         except IOError:
             print("반품 기록을 저장하는 동안 오류가 발생했습니다.")
             return
@@ -774,9 +856,8 @@ class ShoppingMall:
                     else:
                         print("잘못된 코드입니다.")
             elif role == '0':
-                print("프로그램이 종료 됩니다 .") # 프로그램 종료
+                print("프로그램이 종료 됩니다.") # 프로그램 종료
                 sys.exit()
-
             else:
                 print("잘못된 입력입니다.")
 
