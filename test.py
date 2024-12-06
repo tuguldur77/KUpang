@@ -58,12 +58,12 @@ class ShoppingMall:
                 continue
 
             if not is_first_user:
-                # Check for duplicate phone numbers 
+                # Check for duplicate phone numbers
                 with open('users.txt', 'r', encoding='utf-8') as f:
                     users = f.readlines() # Skip header line, if present
                 if any(phone == user.strip().split(',')[2] for user in users):
                     print("이미 등록된 전화번호입니다. 다른 번호를 입력하세요.")
-                    continue  
+                    continue
 
             address = input("주소를 입력하세요: ").strip()
             if address.isdigit():
@@ -77,7 +77,6 @@ class ShoppingMall:
             with open('users.txt', 'a', encoding='utf-8') as f:
                 f.write(f"{name},{passport},{phone},{address}\n")
             print("회원가입 완료됐습니다!")
-            break
 
 
     def login(self):
@@ -158,7 +157,7 @@ class ShoppingMall:
         if product_name.isdigit():
             print("\n오류: 잘못된 입력입니다.")
             return False
-        
+
         if not re.search(r'[a-zA-Z0-9가-힣]', product_name):
             print("\n오류: 상품명은 특수문자나 공백만으로 이루어질 수 없습니다.")
             return False
@@ -196,6 +195,7 @@ class ShoppingMall:
                 if product_id not in matching_products:
                     print("유효하지 않은 상품 번호입니다.")
                     return
+
 
                 # Display options for the user to choose what to update
             while True:
@@ -326,32 +326,32 @@ class ShoppingMall:
     # 공백만 있는 경우 검사
         if query.strip() == '':
             return None, "empty"
-        
+
         # 특수문자 검사 (알파벳, 숫자, 한글, 공백 제외한 문자)
         if re.search(r'[^\w\s가-힣]', query):
             return None, "special"
-        
+
         # 검색 가능한 경우
         return query, "valid"
 
-  
+
     def search_products(self, query):
         query, signal = self.remove_space(query)
-        
+
         if signal == "empty":
             print("\n검색어가 비어 있습니다. 다시 입력하세요.")
             return None
         elif signal == "special":
             print("\n특수문자를 입력할 수 없습니다.")
             return None
-        
+
         # 검색 로직
         results = {
             product_id: (name, price, quantity)
             for product_id, (name, price, quantity) in self.products.items()
             if query.lower() in name.lower() or query.lower() in name.lower().replace(' ', '')
         }
-        
+
         return results
 
 
@@ -482,7 +482,7 @@ class ShoppingMall:
             pass  # If returns.txt doesn't exist, all return counts are assumed to be 0
 
         # Display the header
-        print(f"{'주문번호':<15} {'주문상품명':<15} {'상품번호':<15} {'가격(원)':<15} {'수량':<10} {'주문일':<15} {'고객 아이디':<15} {'반품 수량':<10}")
+        print(f"{'주문번호':<15} {'주문상품명':<15} {'상품번호':<15} {'가격(원)':<15} {'수량':<10} {'주문일':<15} {'고객 아이디':<15} {'반품 회수':<10}")
 
         # Display each order with its return count
         for order in self.orders:
@@ -661,7 +661,7 @@ class ShoppingMall:
         except (TypeError, ValueError):
             print("유효하지 않은 날짜 형식입니다. 관리자에게 문의하세요.")
             return
-        
+
          # Filter return attempts within the last 7 days
         recent_returns = [date for date in return_attempts if (current_date - date).days < 7]
 
@@ -735,7 +735,7 @@ class ShoppingMall:
                                 print("잘못된 입력입니다. 다시 선택하세요.")
                         else:
                             print("\n해당되는 데이터가 없습니다.")
-                            search_choice = ''   
+                            search_choice = ''
                             while search_choice != '1' or '0':
                                 print("\n(1) 다시 검색하기 \n(0) 검색 종료")
                                 search_choice = input("선택: ")
@@ -770,7 +770,7 @@ class ShoppingMall:
         except (TypeError, ValueError):
             print("유효하지 않은 날짜 형식입니다. 관리자에게 문의하세요.")
             return
-        
+
         returned_quantities = {}
         try:
             with open('returns.txt', 'r', encoding='utf-8') as f:
@@ -780,7 +780,7 @@ class ShoppingMall:
                         returned_quantities[order_id] = returned_quantities.get(order_id, 0) + int(quantity)
         except FileNotFoundError:
             pass  # No previous returns, continue
-        
+
         eligible_orders = []
         for order in self.orders:
             if order.customer_phone != self.current_user['phone']:
@@ -792,7 +792,8 @@ class ShoppingMall:
                 if (return_date - order_date).days < 7:
                     returned_quantity = returned_quantities.get(order.order_id, 0)
                     adjusted_quantity = order.quantity - returned_quantity  # Deduct returned quantity
-                    eligible_orders.append((order, returned_quantity, adjusted_quantity))
+                    if adjusted_quantity >= 1:
+                      eligible_orders.append((order, returned_quantity, adjusted_quantity))
             except (TypeError, ValueError):
                 print(f"유효하지 않은 주문 날짜: {order.order_date}")
                 continue
@@ -803,10 +804,10 @@ class ShoppingMall:
             return
 
         # Display the orders in a table format
-        print(f"{'번호':<5} {'주문번호':<15} {'주문상품명':<15} {'상품번호':<15} {'가격(원)':<10} {'수량':<8} {'주문일':<15} {'반품 회수':<10}") 
+        print(f"{'번호':<5} {'주문번호':<15} {'주문상품명':<15} {'상품번호':<15} {'가격(원)':<10} {'수량':<8} {'주문일':<15} {'반품 회수':<10}")
         for idx, (order, returned_quantity, adjusted_quantity) in enumerate(eligible_orders, 1):
             print(f"{idx:<5} {order.order_id:<15} {order.product_name:<15} {order.product_id:<15} "
-                  f"{order.product_price:<10} {adjusted_quantity:<8} {order.order_date:<15} {returned_quantity:<10}") 
+                  f"{order.product_price:<10} {adjusted_quantity:<8} {order.order_date:<15} {returned_quantity:<10}")
 
         # Let the user select an order to return
         input_order_number = input("\n반품할 주문번호를 선택하세요 (0을 입력하면 취소): ").strip()
@@ -815,7 +816,7 @@ class ShoppingMall:
             return
         # Locate the selected order by numeric portion of the order_id
         selected_order_tuple = next(
-            ((order, returned_quantity, adjusted_quantity) for order, returned_quantity, adjusted_quantity in eligible_orders if order.order_id[3:] == input_order_number), 
+            ((order, returned_quantity, adjusted_quantity) for order, returned_quantity, adjusted_quantity in eligible_orders if order.order_id[3:] == input_order_number),
             None
         )
         if not selected_order_tuple:
@@ -827,11 +828,8 @@ class ShoppingMall:
         try:
             # Ask the user how many units they want to return
             quantity_to_return = int(input(f"\n'{selected_order.product_name}'의 반품 수량을 입력하세요: "))
-            if quantity_to_return <= 0:
+            if quantity_to_return <= 0 or quantity_to_return > adjusted_quantity:
                 print("잘못된 수량입니다. 다시 시도해주세요.")
-                return
-            if quantity_to_return > adjusted_quantity:
-                print("반품 수량이 주문 수량을 초과합니다. 다시 시도해주세요.")
                 return
         except ValueError:
             print("유효한 숫자를 입력하세요.")
